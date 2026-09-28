@@ -2,8 +2,6 @@
 
 **ToB 工业硬件售前客服 Agent：从选型到报价的对话演示**
 
-在线演示：**https://aiwenhui.github.io/agent-project/**
-
 ![演示预览](assets/preview.png)
 
 ## 这是什么
