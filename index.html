@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="AIWENHUI 的 ToB 工业硬件售前客服 Agent 项目演示：可播放的对话场景、Agent 执行轨迹、对话主流程、Skill 设计与评测体系（虚构数据重建）。">
+<meta name="author" content="AIWENHUI">
+<meta property="og:title" content="AIWENHUI Agent Project">
+<meta property="og:description" content="ToB 工业硬件售前客服 Agent：从选型到报价的对话演示与设计说明">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231D5FA8'/%3E%3Ctext x='16' y='22' font-family='Arial,sans-serif' font-size='17' font-weight='700' fill='white' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>AIWENHUI Agent Project</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#F2F4F6; --surface:#FFFFFF; --surface-2:#E9EDF1; --ink:#18212B; --muted:#5A6573; --line:#D5DBE2;
+  --accent:#1D5FA8; --accent-soft:#E1EBF7; --on-accent:#FFFFFF;
+  --amber:#9A6414; --amber-soft:#FBF0DC; --green:#2A7449; --green-soft:#E2F2E8;
+  --red:#A83434; --red-soft:#F8E3E3; --violet:#6346A0; --violet-soft:#EEE8F7;
+  --grid:rgba(29,95,168,.07);
+  --sans:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0F141A; --surface:#161D25; --surface-2:#1E2731; --ink:#E4E9EF; --muted:#95A1AF; --line:#2A3542;
+    --accent:#6EA6E6; --accent-soft:#1B2B40; --on-accent:#0F141A;
+    --amber:#E0A94F; --amber-soft:#33280F; --green:#5FC08A; --green-soft:#13291D;
+    --red:#E27676; --red-soft:#351717; --violet:#A68BDB; --violet-soft:#251D35;
+    --grid:rgba(110,166,230,.06);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0F141A; --surface:#161D25; --surface-2:#1E2731; --ink:#E4E9EF; --muted:#95A1AF; --line:#2A3542;
+  --accent:#6EA6E6; --accent-soft:#1B2B40; --on-accent:#0F141A;
+  --amber:#E0A94F; --amber-soft:#33280F; --green:#5FC08A; --green-soft:#13291D;
+  --red:#E27676; --red-soft:#351717; --violet:#A68BDB; --violet-soft:#251D35;
+  --grid:rgba(110,166,230,.06);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.65;
+  padding-inline:16px;padding-block:0 40px}
+.wrap{max-width:1180px;margin:0 auto}
+.mono{font-family:var(--mono)}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.3}
+h1{font-size:26px;font-weight:700;letter-spacing:.01em}
+h2{font-size:19px;font-weight:700}
+h3{font-size:15px;font-weight:700}
+p{margin:0}
+a{color:var(--accent)}
+
+/* header */
+header.top{padding-block:28px 18px;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;border-bottom:1px solid var(--line);margin-inline:-16px;padding-inline:16px}
+header.top .wrap{display:grid;gap:14px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.sub{color:var(--muted);max-width:70ch}
+.outcomes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:4px}
+.outcome{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:4px}
+.outcome b{font-size:14px}
+.outcome span{color:var(--muted);font-size:13px}
+.outcome .k{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.06em}
+.disclaimer{font-size:12.5px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
+.disclaimer i{font-style:normal;font-family:var(--mono);font-size:10.5px;border:1px solid var(--line);border-radius:4px;padding:0 5px;white-space:nowrap;margin-top:2px}
+
+/* tabs */
+nav.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-top:18px;overflow-x:auto}
+nav.tabs button{font:inherit;font-size:14px;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);
+  padding:10px 14px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:500}
+nav.tabs button:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section.panel{padding-top:20px}
+
+/* scenario picker */
+.scen{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.scen button{font:inherit;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;color:var(--ink);display:grid;gap:2px}
+.scen button:hover{border-color:var(--accent)}
+.scen button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.scen .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.scen b{font-size:14px;font-weight:500}
+.scen span{font-size:12px;color:var(--muted)}
+
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-block:14px 10px}
+.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:6px 12px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn:disabled{opacity:.45;cursor:default}
+.counter{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:auto}
+.scen-note{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+
+/* demo stage */
+.stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.pane{background:var(--surface);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;min-height:0;height:640px}
+.pane-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.pane-h b{font-size:13.5px}
+.pane-h small{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+.pane-b{overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;flex:1}
+.shop{display:flex;align-items:center;gap:8px}
+.logo{width:22px;height:22px;border-radius:5px;background:var(--ink);color:var(--bg);font-family:var(--mono);font-size:11px;display:grid;place-items:center;font-weight:500}
+
+.msg{max-width:88%;padding:9px 12px;border-radius:10px;font-size:13.5px}
+.msg.user{align-self:flex-end;background:var(--accent);color:var(--on-accent);border-bottom-right-radius:3px}
+.msg.agent{align-self:flex-start;background:var(--surface-2);border-bottom-left-radius:3px}
+.msg.agent ol{margin:4px 0 0;padding-left:20px}
+.who{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:-6px}
+.who.r{align-self:flex-end}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-self:flex-start}
+.chip{font-size:12.5px;border:1px solid var(--accent);color:var(--accent);border-radius:999px;padding:2px 10px;background:var(--surface)}
+.chips.used .chip{opacity:.5}
+.typing{align-self:flex-start;background:var(--surface-2);border-radius:10px;padding:8px 12px;display:flex;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink 1.1s infinite}
+.typing i:nth-child(2){animation-delay:.18s}.typing i:nth-child(3){animation-delay:.36s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+
+.rec{border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 12px;margin-top:8px;display:grid;gap:6px}
+.pn{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--accent);word-break:break-all}
+.specs{display:flex;flex-wrap:wrap;gap:4px}
+.spec{font-size:11.5px;background:var(--surface-2);border-radius:4px;padding:1px 7px}
+.row-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.row-btns span{font-size:12px;border:1px solid var(--line);border-radius:5px;padding:2px 8px;color:var(--muted)}
+table.t{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:6px}
+table.t th,table.t td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;vertical-align:top}
+table.t th{font-weight:500;color:var(--muted);font-size:11.5px}
+table.t td.num{font-variant-numeric:tabular-nums;font-family:var(--mono);white-space:nowrap}
+tr.hit td{background:var(--accent-soft)}
+.warn{color:var(--amber);font-weight:500}
+.ok{color:var(--green)}
+.tbl-wrap{overflow-x:auto}
+.lead{border:1px dashed var(--violet);background:var(--violet-soft);border-radius:8px;padding:10px 12px;align-self:stretch;font-size:12.5px;display:grid;gap:4px}
+.lead .h{font-family:var(--mono);font-size:11px;color:var(--violet);letter-spacing:.05em}
+.lead dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0}
+.lead dt{color:var(--muted)}
+.lead dd{margin:0}
+
+/* trace */
+.tr{border:1px solid var(--line);border-left:3px solid var(--c);border-radius:6px;padding:8px 10px;font-size:12.5px;display:grid;gap:4px;background:var(--surface)}
+.tr.latest{box-shadow:0 0 0 2px var(--accent-soft)}
+.tr-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;padding:1px 6px;border-radius:4px;background:var(--cs);color:var(--c)}
+.tr-h b{font-size:13px;font-weight:500}
+.tr code,.code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);padding:1px 5px;border-radius:4px;word-break:break-all}
+.tr ul{margin:0;padding-left:18px}
+.slots{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;font-size:12px}
+.slots .s-ok{color:var(--green);font-family:var(--mono)}
+.slots .s-no{color:var(--amber);font-family:var(--mono)}
+.score{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.k-intent{--c:var(--accent);--cs:var(--accent-soft)}
+.k-slot,.k-policy{--c:var(--amber);--cs:var(--amber-soft)}
+.k-skill,.k-gen{--c:var(--accent);--cs:var(--accent-soft)}
+.k-tool,.k-rag,.k-rule{--c:var(--green);--cs:var(--green-soft)}
+.k-guard{--c:var(--red);--cs:var(--red-soft)}
+.k-memory,.k-handoff,.k-store{--c:var(--violet);--cs:var(--violet-soft)}
+.k-qa{--c:var(--muted);--cs:var(--surface-2)}
+.tr.k-qa,.tr.k-store{padding:5px 10px;font-size:12px;color:var(--muted)}
+.tr.k-qa .tr-h b,.tr.k-store .tr-h b{font-size:12px}
+.types{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.type{border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--surface);display:grid;gap:3px;align-content:start}
+.type b{font-size:13.5px}
+.type span{font-size:12px;color:var(--muted)}
+.type.main{border-color:var(--accent);background:var(--accent-soft)}
+.flow-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+.flow-wrap{background:#FFFFFF}
+.flow-svg{min-width:720px;display:flex;justify-content:center}
+.flow-svg svg{max-width:100%;height:auto}
+.points{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.point{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:4px;align-content:start}
+.point b{font-size:14px}
+.point p{font-size:13px;color:var(--muted)}
+.point .code{color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:6px;font-size:11px}
+.empty{color:var(--muted);font-size:13px;margin:auto;text-align:center}
+
+/* design & eval */
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.block{display:grid;gap:10px;margin-bottom:28px}
+.block > p.lead-in{color:var(--muted);max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:8px;align-content:start}
+.intent-tree{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.it{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.it h3{font-size:13.5px;padding:8px 10px;background:var(--surface-2);display:flex;justify-content:space-between;gap:6px}
+.it h3 small{font-family:var(--mono);font-size:10.5px;color:var(--muted);font-weight:400}
+.it ul{list-style:none;margin:0;padding:8px 10px;display:grid;gap:3px;font-size:12.5px}
+.it li::before{content:"└ ";color:var(--muted);font-family:var(--mono)}
+.arch{display:grid;gap:8px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.node{border:1px solid var(--line);background:var(--surface-2);border-radius:6px;padding:5px 9px;font-size:12.5px}
+.arrow{color:var(--muted);font-family:var(--mono)}
+.hub{border:1.5px solid var(--accent);background:var(--accent-soft);border-radius:8px;padding:8px 10px;text-align:center;font-weight:500;font-size:13px}
+.skills{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px}
+.skill{border:1px solid var(--accent);border-radius:6px;padding:5px 8px;font-size:12px;text-align:center;background:var(--surface)}
+.skill.plus{border-style:dashed;color:var(--muted)}
+.shared{display:flex;flex-wrap:wrap;gap:6px}
+.shared span{font-size:12px;border:1px solid var(--line);border-radius:5px;padding:3px 8px;background:var(--surface-2)}
+.why{font-size:12.5px;color:var(--muted);display:grid;gap:3px}
+.why li{margin-left:16px}
+.sop dl{display:grid;grid-template-columns:5em 1fr;gap:6px 12px;margin:0;font-size:13px}
+.sop dt{color:var(--muted)}
+.sop dd{margin:0}
+.ba{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.ba > div{border-radius:8px;padding:10px 12px;font-size:12.5px;display:grid;gap:4px;align-content:start}
+.ba .before{background:var(--red-soft)}
+.ba .after{background:var(--green-soft)}
+.ba .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.05em}
+.ba .before .lbl{color:var(--red)} .ba .after .lbl{color:var(--green)}
+.dims{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.dim{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:4px;align-content:start}
+.dim b{font-size:14px}
+.dim span{font-size:12.5px;color:var(--muted)}
+.layers{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.order{display:grid;gap:8px;counter-reset:o}
+.case{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.case .rank{font-family:var(--mono);font-size:11px;color:var(--muted);grid-row:span 3;padding-top:2px;writing-mode:horizontal-tb}
+.case .cat{font-weight:500}
+.case .cat em{font-style:normal;font-size:11px;font-family:var(--mono);padding:1px 6px;border-radius:4px;margin-left:6px}
+.c1 em{background:var(--red-soft);color:var(--red)} .c2 em{background:var(--amber-soft);color:var(--amber)} .c3 em{background:var(--accent-soft);color:var(--accent)}
+.case p{color:var(--muted);font-size:12.5px}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:2px}
+.kpi .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--accent)}
+.kpi .l{font-size:12.5px;color:var(--muted)}
+.role ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+footer{margin-top:24px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+
+@media (max-width:900px){
+  .stage,.grid2,.layers,.ba{grid-template-columns:1fr}
+  .pane{height:auto;max-height:560px}
+  .scen{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .intent-tree,.points{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .types{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .dims{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .outcomes{grid-template-columns:1fr}
+}
+@media (max-width:480px){
+  .scen,.intent-tree,.dims,.points,.types{grid-template-columns:1fr}
+  h1{font-size:22px}
+}
+@media (prefers-reduced-motion:reduce){.typing i{animation:none;opacity:.6}}
+</style>
+
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="eyebrow">AIWENHUI · Agent Project · ToB 工业硬件售前客服 Agent</div>
+    <h1>FA 标准零件售前 Agent：从选型到报价的对话演示</h1>
+    <p class="sub">面向制造企业工程师与采购的 7×24 售前咨询。本页用虚构品牌 <b>KANAGU FA</b> 和虚构型号重建我主导的项目，左侧是客户看到的对话，右侧是 Agent 每一步做了什么。我的角色：AI 产品经理（意图体系与 SOP、Skill 设计、评测与 Bad Case 治理）。</p>
+    <div class="outcomes">
+      <div class="outcome"><span class="k">帮客户完成 ①</span><b>从模糊需求到确定型号</b><span>缺什么参数就问什么，给出可直接下单的完整型号和选型理由</span></div>
+      <div class="outcome"><span class="k">帮客户完成 ②</span><b>当场拿到量价和交期</b><span>阶梯价、出货日、送达时间一次答完，不用等营业回邮件</span></div>
+      <div class="outcome"><span class="k">帮客户完成 ③</span><b>超出边界时带着上下文转人工</b><span>议价转营业、看图纸转技术，接手的人不用再从头问一遍</span></div>
+    </div>
+    <p class="disclaimer"><i>DEMO</i><span>品牌、型号、价格、对话均为虚构，仅保留项目的结构与设计思路，不含任何客户信息、公司内部系统截图或保密数据。原系统为日语对话，此处译为中文。</span></p>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="tabs" role="tablist" aria-label="页面分区">
+    <button role="tab" id="tab-demo" aria-controls="demo" aria-selected="true">任务演示</button>
+    <button role="tab" id="tab-design" aria-controls="design" aria-selected="false">我的设计</button>
+    <button role="tab" id="tab-eval" aria-controls="eval" aria-selected="false">评测与成果</button>
+  </nav>
+
+  <!-- DEMO -->
+  <section class="panel" id="demo" role="tabpanel" aria-labelledby="tab-demo">
+    <div class="scen" id="scen" role="group" aria-label="选择场景"></div>
+    <div class="controls">
+      <button class="btn primary" id="b-play">▶ 从头播放</button>
+      <button class="btn" id="b-next">下一步</button>
+      <button class="btn" id="b-all">显示全部</button>
+      <span class="counter" id="counter"></span>
+    </div>
+    <p class="scen-note" id="scen-note"></p>
+    <div class="stage">
+      <div class="pane" aria-label="客户视角对话">
+        <div class="pane-h"><span class="shop"><span class="logo">K</span><b>KANAGU FA 在线咨询</b></span><small>客户视角</small></div>
+        <div class="pane-b" id="chat" aria-live="polite"></div>
+      </div>
+      <div class="pane" aria-label="Agent 执行轨迹">
+        <div class="pane-h"><b>Agent 执行轨迹</b>
+          <span class="legend">
+            <span class="tag k-intent">理解</span><span class="tag k-slot">策略</span><span class="tag k-tool">检索/工具</span><span class="tag k-handoff">记忆/转人工</span><span class="tag k-guard">护栏</span>
+          </span>
+        </div>
+        <div class="pane-b" id="trace"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DESIGN -->
+  <section class="panel" id="design" role="tabpanel" aria-labelledby="tab-design" hidden>
+    <div class="block">
+      <h2>1. 对话主流程</h2>
+      <p class="lead-in">每一轮对话都走这条流程。高频固定问题先由 QA 对直接回答；其余问题结合历史对话判断意图类型，只有“有效咨询”进入 Skill 和工具调用，其他四类各有固定的处理策略。</p>
+      <div class="flow-wrap">
+<div class="flow-svg" role="img" aria-label="对话主流程图"><svg aria-roledescription="flowchart-v2" role="graphics-document document" viewBox="0 0 1355.421875 1496.234375" style="max-width: 1355.421875px;" class="flowchart" xmlns="http://www.w3.org/2000/svg" width="100%" id="agentflow"><style>#agentflow{font-family:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;font-size:14px;fill:#18212B;}#agentflow .error-icon{fill:#FFFFFF;}#agentflow .error-text{fill:#000000;stroke:#000000;}#agentflow .edge-thickness-normal{stroke-width:1px;}#agentflow .edge-thickness-thick{stroke-width:3.5px;}#agentflow .edge-pattern-solid{stroke-dasharray:0;}#agentflow .edge-thickness-invisible{stroke-width:0;fill:none;}#agentflow .edge-pattern-dashed{stroke-dasharray:3;}#agentflow .edge-pattern-dotted{stroke-dasharray:2;}#agentflow .marker{fill:#5A6573;stroke:#5A6573;}#agentflow .marker.cross{stroke:#5A6573;}#agentflow svg{font-family:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;font-size:14px;}#agentflow p{margin:0;}#agentflow .label{font-family:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#18212B;}#agentflow .cluster-label text{fill:#000000;}#agentflow .cluster-label span{color:#000000;}#agentflow .cluster-label span p{background-color:transparent;}#agentflow .label text,#agentflow span{fill:#18212B;color:#18212B;}#agentflow .node rect,#agentflow .node circle,#agentflow .node ellipse,#agentflow .node polygon,#agentflow .node path{fill:#EEF3FA;stroke:#1D5FA8;stroke-width:1px;}#agentflow .rough-node .label text,#agentflow .node .label text,#agentflow .image-shape .label,#agentflow .icon-shape .label{text-anchor:middle;}#agentflow .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#agentflow .rough-node .label,#agentflow .node .label,#agentflow .image-shape .label,#agentflow .icon-shape .label{text-align:center;}#agentflow .node.clickable{cursor:pointer;}#agentflow .root .anchor path{fill:#5A6573!important;stroke-width:0;stroke:#5A6573;}#agentflow .arrowheadPath{fill:#0b0b0b;}#agentflow .edgePath .path{stroke:#5A6573;stroke-width:2.0px;}#agentflow .flowchart-link{stroke:#5A6573;fill:none;}#agentflow .edgeLabel{background-color:#FFFFFF;text-align:center;}#agentflow .edgeLabel p{background-color:#FFFFFF;}#agentflow .edgeLabel rect{opacity:0.5;background-color:#FFFFFF;fill:#FFFFFF;}#agentflow .labelBkg{background-color:rgba(255, 255, 255, 0.5);}#agentflow .cluster rect{fill:#FFFFFF;stroke:hsl(0, 0%, 90%);stroke-width:1px;}#agentflow .cluster text{fill:#000000;}#agentflow .cluster span{color:#000000;}#agentflow div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;font-size:12px;background:#FFFFFF;border:1px solid hsl(0, 0%, 90%);border-radius:2px;pointer-events:none;z-index:100;}#agentflow .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#18212B;}#agentflow rect.text{fill:none;stroke-width:0;}#agentflow .icon-shape,#agentflow .image-shape{background-color:#FFFFFF;text-align:center;}#agentflow .icon-shape p,#agentflow .image-shape p{background-color:#FFFFFF;padding:2px;}#agentflow .icon-shape rect,#agentflow .image-shape rect{opacity:0.5;background-color:#FFFFFF;fill:#FFFFFF;}#agentflow :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker orient="auto" markerHeight="8" markerWidth="8" markerUnits="userSpaceOnUse" refY="5" refX="5" viewBox="0 0 10 10" class="marker flowchart-v2" id="agentflow_flowchart-v2-pointEnd"><path style="stroke-width: 1; stroke-dasharray: 1, 0;" class="arrowMarkerPath" d="M 0 0 L 10 5 L 0 10 z"></path></marker><marker orient="auto" markerHeight="8" markerWidth="8" markerUnits="userSpaceOnUse" refY="5" refX="4.5" viewBox="0 0 10 10" class="marker flowchart-v2" id="agentflow_flowchart-v2-pointStart"><path style="stroke-width: 1; stroke-dasharray: 1, 0;" class="arrowMarkerPath" d="M 0 5 L 10 10 L 10 0 z"></path></marker><marker orient="auto" markerHeight="11" markerWidth="11" markerUnits="userSpaceOnUse" refY="5" refX="11" viewBox="0 0 10 10" class="marker flowchart-v2" id="agentflow_flowchart-v2-circleEnd"><circle style="stroke-width: 1; stroke-dasharray: 1, 0;" class="arrowMarkerPath" r="5" cy="5" cx="5"></circle></marker><marker orient="auto" markerHeight="11" markerWidth="11" markerUnits="userSpaceOnUse" refY="5" refX="-1" viewBox="0 0 10 10" class="marker flowchart-v2" id="agentflow_flowchart-v2-circleStart"><circle style="stroke-width: 1; stroke-dasharray: 1, 0;" class="arrowMarkerPath" r="5" cy="5" cx="5"></circle></marker><marker orient="auto" markerHeight="11" markerWidth="11" markerUnits="userSpaceOnUse" refY="5.2" refX="12" viewBox="0 0 11 11" class="marker cross flowchart-v2" id="agentflow_flowchart-v2-crossEnd"><path style="stroke-width: 2; stroke-dasharray: 1, 0;" class="arrowMarkerPath" d="M 1,1 l 9,9 M 10,1 l -9,9"></path></marker><marker orient="auto" markerHeight="11" markerWidth="11" markerUnits="userSpaceOnUse" refY="5.2" refX="-1" viewBox="0 0 11 11" class="marker cross flowchart-v2" id="agentflow_flowchart-v2-crossStart"><path style="stroke-width: 2; stroke-dasharray: 1, 0;" class="arrowMarkerPath" d="M 1,1 l 9,9 M 10,1 l -9,9"></path></marker><g class="root"><g class="clusters"></g><g class="edgePaths"><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_A_B_0" d="M576.336,44L576.336,47.667C576.336,51.333,576.336,58.667,576.404,65.417C576.473,72.167,576.61,78.334,576.679,81.417L576.747,84.501"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_B_Q_1" d="M516.05,175.948L445.452,191.329C374.853,206.71,233.657,237.472,163.059,262.437C92.461,287.401,92.461,306.568,92.461,324.068C92.461,341.568,92.461,357.401,92.461,373.234C92.461,389.068,92.461,404.901,92.461,420.734C92.461,436.568,92.461,452.401,92.461,472.901C92.461,493.401,92.461,518.568,92.461,543.734C92.461,568.901,92.461,594.068,92.461,614.568C92.461,635.068,92.461,650.901,92.461,666.734C92.461,682.568,92.461,698.401,92.461,714.234C92.461,730.068,92.461,745.901,92.461,761.734C92.461,777.568,92.461,793.401,92.461,809.234C92.461,825.068,92.461,840.901,92.461,856.734C92.461,872.568,92.461,888.401,92.461,922.651C92.461,956.901,92.461,1009.568,92.461,1063.901C92.461,1118.234,92.461,1174.234,92.461,1206.901C92.461,1239.568,92.461,1248.901,92.461,1253.568L92.461,1258.234"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_B_H_2" d="M634.367,179.203L686.043,194.042C737.719,208.88,841.07,238.557,892.746,258.063C944.422,277.568,944.422,286.901,944.422,291.568L944.422,296.234"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_H_I_3" d="M944.422,351.234L944.422,354.901C944.422,358.568,944.422,365.901,944.422,372.568C944.422,379.234,944.422,385.234,944.422,388.234L944.422,391.234"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_I_T_4" d="M944.422,446.234L944.422,449.901C944.422,453.568,944.422,460.901,944.49,467.651C944.559,474.401,944.696,480.568,944.764,483.652L944.833,486.735"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_T_R_5" d="M897.316,550.129L803.536,561.646C709.755,573.164,522.194,596.199,428.413,615.633C334.633,635.068,334.633,650.901,334.633,666.734C334.633,682.568,334.633,698.401,334.633,714.234C334.633,730.068,334.633,745.901,334.633,761.734C334.633,777.568,334.633,793.401,334.633,804.318C334.633,815.234,334.633,821.234,334.633,824.234L334.633,827.234"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_T_C_6" d="M901.24,554.053L852.455,564.916C803.669,575.78,706.098,597.507,657.313,616.287C608.527,635.068,608.527,650.901,608.527,666.734C608.527,682.568,608.527,698.401,608.527,714.234C608.527,730.068,608.527,745.901,608.527,761.734C608.527,777.568,608.527,793.401,608.527,809.234C608.527,825.068,608.527,840.901,608.527,856.734C608.527,872.568,608.527,888.401,608.527,917.734C608.527,947.068,608.527,989.901,608.527,1011.318L608.527,1032.734"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_T_V_7" d="M914.114,566.927L902.082,575.645C890.05,584.363,865.986,601.799,853.954,613.516C841.922,625.234,841.922,631.234,841.922,634.234L841.922,637.234"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_T_U_8" d="M974.162,568.494L984.372,576.951C994.582,585.408,1015.002,602.321,1025.212,618.694C1035.422,635.068,1035.422,650.901,1035.422,666.734C1035.422,682.568,1035.422,698.401,1035.422,714.234C1035.422,730.068,1035.422,745.901,1035.422,761.734C1035.422,777.568,1035.422,793.401,1035.422,809.234C1035.422,825.068,1035.422,840.901,1035.422,856.734C1035.422,872.568,1035.422,888.401,1035.422,917.734C1035.422,947.068,1035.422,989.901,1035.422,1011.318L1035.422,1032.734"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_T_E_9" d="M987.944,554.712L1032.357,565.466C1076.77,576.22,1165.596,597.727,1210.009,616.397C1254.422,635.068,1254.422,650.901,1254.422,666.734C1254.422,682.568,1254.422,698.401,1254.422,714.234C1254.422,730.068,1254.422,745.901,1254.422,761.734C1254.422,777.568,1254.422,793.401,1254.422,809.234C1254.422,825.068,1254.422,840.901,1254.422,856.734C1254.422,872.568,1254.422,888.401,1254.422,917.734C1254.422,947.068,1254.422,989.901,1254.422,1011.318L1254.422,1032.734"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_R_RC_10" d="M334.633,882.234L334.633,885.901C334.633,889.568,334.633,896.901,334.701,903.651C334.77,910.401,334.907,916.568,334.975,919.652L335.044,922.735"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_RC_HM_11" d="M285.208,1148.81L277.205,1162.381C269.203,1175.951,253.197,1203.093,245.194,1226.247C237.191,1249.401,237.191,1268.568,237.191,1286.068C237.191,1303.568,237.191,1319.401,234.916,1330.445C232.64,1341.49,228.09,1347.745,225.814,1350.872L223.539,1354"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_RC_RS_12" d="M358.336,1175.531L360.145,1184.649C361.954,1193.766,365.573,1212,367.382,1225.784C369.191,1239.568,369.191,1248.901,369.191,1253.568L369.191,1258.234"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_C_CG_13" d="M608.527,1087.734L608.527,1111.484C608.527,1135.234,608.527,1182.734,608.527,1211.151C608.527,1239.568,608.527,1248.901,608.527,1253.568L608.527,1258.234"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_V_SK_14" d="M841.922,692.234L841.922,695.901C841.922,699.568,841.922,706.901,841.922,713.568C841.922,720.234,841.922,726.234,841.922,729.234L841.922,732.234"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_SK_TL_15" d="M805.758,787.234L800.558,790.901C795.358,794.568,784.959,801.901,779.759,808.568C774.559,815.234,774.559,821.234,774.559,824.234L774.559,827.234"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_TL_OK_16" d="M774.559,882.234L774.559,885.901C774.559,889.568,774.559,896.901,780.848,915.213C787.138,933.525,799.718,962.815,806.008,977.46L812.297,992.105"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_OK_SK_17" d="M875.116,999.929L883.292,983.98C891.468,968.031,907.82,936.133,915.996,912.267C924.172,888.401,924.172,872.568,924.172,856.734C924.172,840.901,924.172,825.068,918.4,813.818C912.628,802.568,901.085,795.901,895.313,792.568L889.541,789.235"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_OK_OUT_18" d="M842.422,1158.234L842.339,1170.234C842.255,1182.234,842.089,1206.234,842.005,1222.901C841.922,1239.568,841.922,1248.901,841.922,1253.568L841.922,1258.234"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_U_UC_19" d="M1035.422,1087.734L1035.422,1111.484C1035.422,1135.234,1035.422,1182.734,1035.422,1211.151C1035.422,1239.568,1035.422,1248.901,1035.422,1253.568L1035.422,1258.234"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_E_ES_20" d="M1254.422,1087.734L1254.422,1111.484C1254.422,1135.234,1254.422,1182.734,1254.422,1211.151C1254.422,1239.568,1254.422,1248.901,1254.422,1253.568L1254.422,1258.234"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_Q_ST_21" d="M92.461,1313.234L92.461,1316.901C92.461,1320.568,92.461,1327.901,185.178,1338.382C277.896,1348.863,463.33,1362.492,556.047,1369.306L648.765,1376.121"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_RS_ST_22" d="M369.191,1313.234L369.191,1316.901C369.191,1320.568,369.191,1327.901,415.791,1337.557C462.39,1347.213,555.588,1359.192,602.187,1365.181L648.787,1371.171"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_CG_ST_23" d="M608.527,1313.234L608.527,1316.901C608.527,1320.568,608.527,1327.901,617.954,1335.006C627.38,1342.111,646.232,1348.987,655.659,1352.425L665.085,1355.864"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_OUT_ST_24" d="M841.922,1313.234L841.922,1316.901C841.922,1320.568,841.922,1327.901,834.564,1334.956C827.205,1342.01,812.489,1348.786,805.13,1352.174L797.772,1355.562"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_UC_ST_25" d="M1035.422,1313.234L1035.422,1316.901C1035.422,1320.568,1035.422,1327.901,1000.969,1337.084C966.516,1346.267,897.61,1357.3,863.157,1362.816L828.704,1368.332"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_ES_ST_26" d="M1254.422,1313.234L1254.422,1316.901C1254.422,1320.568,1254.422,1327.901,1183.474,1338.103C1112.527,1348.305,970.632,1361.375,899.685,1367.91L828.737,1374.446"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_ST_END_27" d="M738.754,1408.234L738.754,1411.901C738.754,1415.568,738.754,1422.901,713.419,1432.138C688.083,1441.376,637.413,1452.517,612.078,1458.088L586.743,1463.659"></path><path marker-end="url(#agentflow_flowchart-v2-pointEnd)" style="" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" id="L_HM_END_28" d="M202.633,1408.234L202.633,1411.901C202.633,1415.568,202.633,1422.901,256.671,1432.67C310.709,1442.439,418.785,1454.644,472.823,1460.747L526.861,1466.849"></path></g><g class="edgeLabels"><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g><rect style="stroke: none" class="background"></rect></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g transform="translate(92.4609375, 666.7343730926514)" class="edgeLabel"><g transform="translate(-9, -9.999999046325684)" class="label"><g><rect height="19.999999046325684" width="18" y="-0.9999990463256836" x="-2" style="" class="background"></rect><text style="" y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"><tspan font-weight="normal" class="text-inner-tspan" font-style="normal">是</tspan></tspan></text></g></g></g><g transform="translate(944.421875, 268.2343740463257)" class="edgeLabel"><g transform="translate(-9, -9.999999046325684)" class="label"><g><rect height="19.999999046325684" width="18" y="-0.9999990463256836" x="-2" style="" class="background"></rect><text style="" y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"><tspan font-weight="normal" class="text-inner-tspan" font-style="normal">否</tspan></tspan></text></g></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g transform="translate(237.19140625, 1287.7343711853027)" class="edgeLabel"><g transform="translate(-9, -9.999999046325684)" class="label"><g><rect height="19.999999046325684" width="18" y="-0.9999990463256836" x="-2" style="" class="background"></rect><text style="" y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"><tspan font-weight="normal" class="text-inner-tspan" font-style="normal">是</tspan></tspan></text></g></g></g><g transform="translate(369.19140625, 1230.234372138977)" class="edgeLabel"><g transform="translate(-9, -9.999999046325684)" class="label"><g><rect height="19.999999046325684" width="18" y="-0.9999990463256836" x="-2" style="" class="background"></rect><text style="" y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"><tspan font-weight="normal" class="text-inner-tspan" font-style="normal">否</tspan></tspan></text></g></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g transform="translate(924.171875, 856.7343730926514)" class="edgeLabel"><g transform="translate(-9, -9.999999046325684)" class="label"><g><rect height="19.999999046325684" width="18" y="-0.9999990463256836" x="-2" style="" class="background"></rect><text style="" y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"><tspan font-weight="normal" class="text-inner-tspan" font-style="normal">否</tspan></tspan></text></g></g></g><g transform="translate(841.921875, 1230.234372138977)" class="edgeLabel"><g transform="translate(-9, -9.999999046325684)" class="label"><g><rect height="19.999999046325684" width="18" y="-0.9999990463256836" x="-2" style="" class="background"></rect><text style="" y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"><tspan font-weight="normal" class="text-inner-tspan" font-style="normal">是</tspan></tspan></text></g></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g><g class="edgeLabel"><g transform="translate(0, 0)" class="label"><text y="-10.1"><tspan dy="1.1em" y="-0.1em" x="0" class="text-outer-tspan"></tspan></text></g></g></g><g class="nodes"><g transform="translate(576.3359375, 26)" id="flowchart-A-0" class="node default"><rect height="36" width="80" y="-18" x="-40" ry="18" rx="18" style="" class="basic label-container"></rect><g transform="translate(-28, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="56"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>用户提问</p></span></div></foreignObject></g></g><g transform="translate(576.3359375, 162.1171875)" id="flowchart-B-1" class="node default"><polygon transform="translate(-74.1171875,74.1171875)" class="label-container" points="74.1171875,0 148.234375,-74.1171875 74.1171875,-148.234375 0,-74.1171875"></polygon><g transform="translate(-48.6171875, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="97.234375"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>是否命中 QA 对</p></span></div></foreignObject></g></g><g transform="translate(92.4609375, 1287.7343711853027)" id="flowchart-Q-3" class="node default"><rect height="51" width="168.921875" y="-25.5" x="-84.4609375" style="" class="basic label-container"></rect><g transform="translate(-54.4609375, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="108.921875"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>固定 answer 回答</p></span></div></foreignObject></g></g><g transform="translate(944.421875, 325.73437309265137)" id="flowchart-H-5" class="node default"><rect height="51" width="144" y="-25.5" x="-72" style="" class="basic label-container"></rect><g transform="translate(-42, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="84"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>读取历史对话</p></span></div></foreignObject></g></g><g transform="translate(944.421875, 420.73437309265137)" id="flowchart-I-7" class="node default"><rect height="51" width="172" y="-25.5" x="-86" style="" class="basic label-container"></rect><g transform="translate(-56, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="112"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>结合历史判断意图</p></span></div></foreignObject></g></g><g transform="translate(944.421875, 543.7343730926514)" id="flowchart-T-9" class="node default"><polygon transform="translate(-53.5,53.5)" class="label-container" points="53.5,0 107,-53.5 53.5,-107 0,-53.5"></polygon><g transform="translate(-28, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="56"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>意图类型</p></span></div></foreignObject></g></g><g transform="translate(334.6328125, 856.7343730926514)" id="flowchart-R-11" class="node default"><rect height="51" width="102" y="-25.5" x="-51" style="" class="basic label-container"></rect><g transform="translate(-21, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="42"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>转人工</p></span></div></foreignObject></g></g><g transform="translate(608.52734375, 1062.2343730926514)" id="flowchart-C-13" class="node default"><rect height="51" width="141.671875" y="-25.5" x="-70.8359375" style="" class="basic label-container"></rect><g transform="translate(-40.8359375, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="81.671875"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>闲聊 / 结束语</p></span></div></foreignObject></g></g><g transform="translate(841.921875, 666.7343730926514)" id="flowchart-V-15" class="node default"><rect height="51" width="116" y="-25.5" x="-58" style="" class="basic label-container"></rect><g transform="translate(-28, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="56"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>有效咨询</p></span></div></foreignObject></g></g><g transform="translate(1035.421875, 1062.2343730926514)" id="flowchart-U-17" class="node default"><rect height="51" width="116" y="-25.5" x="-58" style="" class="basic label-container"></rect><g transform="translate(-28, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="56"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>需求不明</p></span></div></foreignObject></g></g><g transform="translate(1254.421875, 1062.2343730926514)" id="flowchart-E-19" class="node default"><rect height="51" width="116" y="-25.5" x="-58" style="" class="basic label-container"></rect><g transform="translate(-28, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="56"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>情绪宣泄</p></span></div></foreignObject></g></g><g transform="translate(334.6328125, 1062.2343730926514)" id="flowchart-RC-21" class="node default"><polygon transform="translate(-136,136)" class="label-container" points="136,0 272,-136 136,-272 0,-136"></polygon><g transform="translate(-100, -21)" style="" class="label"><rect></rect><foreignObject height="42" width="200"><div style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>近 5 轮转人工诉求 / 负面情绪 达到 3 次</p></span></div></foreignObject></g></g><g transform="translate(202.6328125, 1382.7343711853027)" id="flowchart-HM-23" class="node default"><rect height="51" width="158" y="-25.5" x="-79" style="" class="basic label-container"></rect><g transform="translate(-49, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="98"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>转人工客服处理</p></span></div></foreignObject></g></g><g transform="translate(369.19140625, 1287.7343711853027)" id="flowchart-RS-25" class="node default"><rect height="51" width="186" y="-25.5" x="-93" style="" class="basic label-container"></rect><g transform="translate(-63, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="126"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>安抚并引导有效咨询</p></span></div></foreignObject></g></g><g transform="translate(608.52734375, 1287.7343711853027)" id="flowchart-CG-27" class="node default"><rect height="51" width="197.671875" y="-25.5" x="-98.8359375" style="" class="basic label-container"></rect><g transform="translate(-68.8359375, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="137.671875"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>引导有效咨询 / 结束语</p></span></div></foreignObject></g></g><g transform="translate(841.921875, 761.7343730926514)" id="flowchart-SK-29" class="node default"><rect height="51" width="159.5625" y="-25.5" x="-79.78125" style="" class="basic label-container"></rect><g transform="translate(-49.78125, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="99.5625"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>按意图命中 Skill</p></span></div></foreignObject></g></g><g transform="translate(774.55859375, 856.7343730926514)" id="flowchart-TL-31" class="node default"><rect height="51" width="191.453125" y="-25.5" x="-95.7265625" style="" class="basic label-container"></rect><g transform="translate(-65.7265625, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="131.453125"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>按 Skill 要求调用工具</p></span></div></foreignObject></g></g><g transform="translate(841.921875, 1062.2343730926514)" id="flowchart-OK-33" class="node default"><polygon transform="translate(-95.5,95.5)" class="label-container" points="95.5,0 191,-95.5 95.5,-191 0,-95.5"></polygon><g transform="translate(-70, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="140"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>工具结果能否满足需求</p></span></div></foreignObject></g></g><g transform="translate(841.921875, 1287.7343711853027)" id="flowchart-OUT-37" class="node default"><rect height="51" width="116" y="-25.5" x="-58" style="" class="basic label-container"></rect><g transform="translate(-28, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="56"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>输出回答</p></span></div></foreignObject></g></g><g transform="translate(1035.421875, 1287.7343711853027)" id="flowchart-UC-39" class="node default"><rect height="51" width="172" y="-25.5" x="-86" style="" class="basic label-container"></rect><g transform="translate(-56, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="112"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>引导用户澄清意图</p></span></div></foreignObject></g></g><g transform="translate(1254.421875, 1287.7343711853027)" id="flowchart-ES-41" class="node default"><rect height="51" width="186" y="-25.5" x="-93" style="" class="basic label-container"></rect><g transform="translate(-63, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="126"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>安抚并引导有效咨询</p></span></div></foreignObject></g></g><g transform="translate(738.75390625, 1382.7343711853027)" id="flowchart-ST-43" class="node default"><rect height="51" width="172" y="-25.5" x="-86" style="" class="basic label-container"></rect><g transform="translate(-56, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="112"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>存储本轮对话记录</p></span></div></foreignObject></g></g><g transform="translate(556.8359375, 1470.2343711853027)" id="flowchart-END-55" class="node default"><rect height="36" width="52" y="-18" x="-26" ry="18" rx="18" style="" class="basic label-container"></rect><g transform="translate(-14, -10.5)" style="" class="label"><rect></rect><foreignObject height="21" width="28"><div style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;" xmlns="http://www.w3.org/1999/xhtml"><span class="nodeLabel"><p>结束</p></span></div></foreignObject></g></g></g></g></g></svg></div>
+      </div>
+      <div class="points">
+        <div class="point"><b>QA 对前置</b><p>起订量、发票、营业时间这类答案固定的问题，命中 QA 对就直接回答，不经过意图判断和大模型。回答稳定，也省成本和时延。（演示场景 4）</p></div>
+        <div class="point"><b>5 类意图分流</b><p>先判断“这句话属于哪一类”，再决定要不要进 Skill。闲聊、需求不明、情绪宣泄都有专门的应对，不会被硬塞进业务 Skill 里答非所问。（演示场景 4、5）</p></div>
+        <div class="point"><b>工具结果校验回环</b><p>工具返回后先判断能否满足需求。不满足就回到 Skill 重新决策，比如候选太多就反问参数，批量价查不到就改走询价流程。（演示场景 1、2）</p></div>
+        <div class="point"><b>转人工计数规则</b><p>近 5 轮内转人工诉求或负面情绪累计 3 次才转人工，之前先安抚并尝试解决。这是转人工率下降 40%+ 的关键设计，同时保证真着急的客户不会被困住。（演示场景 5）</p></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>2. 意图类型与二级意图</h2>
+      <p class="lead-in">第一层是 5 类对话意图类型；“有效咨询”下再按业务拆成二级意图，每组二级意图对应一个 Skill 和一套 SOP。（二级意图名称为示例）</p>
+      <div class="types">
+        <div class="type"><b>转人工</b><span>计数规则判断：转人工，或安抚引导</span></div>
+        <div class="type"><b>闲聊 / 结束语</b><span>引导到可咨询范围，或礼貌结束</span></div>
+        <div class="type main"><b>有效咨询</b><span>命中 Skill → 调用工具 → 校验 → 回答</span></div>
+        <div class="type"><b>需求不明</b><span>给出选项，引导澄清，不猜</span></div>
+        <div class="type"><b>情绪宣泄</b><span>先安抚，再引导回具体问题</span></div>
+      </div>
+      <div class="intent-tree">
+        <div class="it"><h3>产品参数 <small>Skill</small></h3><ul><li>规格查询</li><li>选型推荐</li><li>尺寸 / 公差</li><li>材质与表面处理</li><li>CAD / 图纸</li></ul></div>
+        <div class="it"><h3>报价采购 <small>Skill</small></h3><ul><li>单价 / 阶梯价</li><li>交期 / 出货日</li><li>大批量询价</li><li>报价单 / 发票</li></ul></div>
+        <div class="it"><h3>竞品选型 <small>Skill</small></h3><ul><li>替代型号</li><li>规格对照</li><li>差异风险提示</li></ul></div>
+        <div class="it"><h3>售后支持 <small>Skill</small></h3><ul><li>订单 / 物流查询</li><li>退换货</li><li>技术咨询工单</li><li>安装使用</li></ul></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>3. Skill 触发边界与工具调用规则</h2>
+      <p class="lead-in">每个 Skill 写清楚“什么时候做、什么时候不做、工具结果不满足时怎么办”。复合意图拆成子任务，彼此不依赖的工具并行调用，有依赖的串行。</p>
+      <div class="card tbl-wrap">
+        <table class="t">
+          <thead><tr><th>Skill</th><th>触发</th><th>不做（边界）</th><th>工具与调用方式</th><th>结果不满足时</th></tr></thead>
+          <tbody>
+            <tr><td><b>产品参数查询</b></td><td>规格、选型、尺寸公差、材质</td><td>不回答资料里查不到的参数，不给强度计算的最终结论</td><td><span class="code">search_parts</span> → 规格校验；<span class="code">get_price</span> ‖ <span class="code">get_lead_time</span> 并行</td><td>候选过多 → 反问关键参数（最多 3 个，给选项）</td></tr>
+            <tr><td><b>报价采购</b></td><td>单价、阶梯价、交期、下单</td><td>不承诺折扣，不改价</td><td><span class="code">get_tier_price</span> ‖ <span class="code">get_lead_time</span> 并行 → 汇总</td><td>无自动价格（≥300 或议价）→ <span class="code">create_sales_lead</span> 生成询价单给营业</td></tr>
+            <tr><td><b>竞品对比</b></td><td>他司型号替换、规格对照</td><td>只做规格对照，不评价他司质量与价格；对照表未收录不推测</td><td><span class="code">xref_lookup</span> → 关键尺寸逐项比对（串行）</td><td>有差异项 → 回答中必须写明风险；需要看图纸 → 技术咨询工单</td></tr>
+            <tr><td><b>售后支持</b></td><td>订单、物流、退换货、技术咨询</td><td>不判定质量责任</td><td><span class="code">get_order</span>；<span class="code">create_tech_ticket</span></td><td>查不到订单 → 反问订单号</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>4. SOP：“理想回答”标准（以选型推荐为例）</h2>
+      <div class="grid2">
+        <div class="card sop">
+          <dl>
+            <dt>内容</dt><dd>必须包含完整型号、选型理由、注意事项；缺关键参数时先澄清，不猜</dd>
+            <dt>结构</dt><dd>结论 → 推荐型号 → 理由 → 注意事项 → 下一步操作</dd>
+            <dt>长度</dt><dd>正文 ≤250 字；参数用标签或表格，不写成长段落</dd>
+            <dt>语气</dt><dd>专业、简洁；不用“最好”“绝对”等夸大表述</dd>
+            <dt>澄清</dt><dd>一次最多问 3 个问题，每个都给选项</dd>
+          </dl>
+        </div>
+        <div class="ba">
+          <div class="before"><span class="lbl">BEFORE · 关键词问答对</span>
+            <p>“直线轴有多种材质和尺寸可选，请参考产品目录第 42 页，或联系营业担当。”</p>
+            <p class="warn">没有型号，客户要自己翻目录</p>
+          </div>
+          <div class="after"><span class="lbl">AFTER · 按 SOP 生成</span>
+            <p>“推荐 <span class="code">LSF-S-D12-L230-TM6</span>。洁净室需要低发尘，不锈钢淬火轴无镀层……注意：3kg 负载建议两根轴并联。”</p>
+            <p class="ok">可直接加入询价单</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>5. 架构演进</h2>
+      <div class="grid2">
+        <div class="card arch">
+          <div class="eyebrow">PoC 阶段</div>
+          <h3>Planner + Executor</h3>
+          <div class="chain">
+            <span class="node">意图识别</span><span class="arrow">→</span><span class="node">检索召回</span><span class="arrow">→</span><span class="node">多轮上下文</span><span class="arrow">→</span><span class="node">信息澄清</span><span class="arrow">→</span><span class="node">内容生成</span>
+          </div>
+          <ul class="why">
+            <li>链路清晰，适合快速验证“能不能答对”</li>
+            <li>每加一个意图都要改 Planner 的整体 Prompt，互相影响</li>
+            <li>“价格 + 交期”这类复合意图只能串行处理，容易只答一半</li>
+          </ul>
+        </div>
+        <div class="card arch">
+          <div class="eyebrow">迭代后（上面的主流程）</div>
+          <h3>Agent + 可插拔 Skill</h3>
+          <div class="skills">
+            <span class="skill">产品参数</span><span class="skill">报价采购</span><span class="skill">竞品对比</span><span class="skill">售后支持</span><span class="skill plus">+ 新 Skill</span>
+          </div>
+          <ul class="why">
+            <li>每组二级意图封装成独立 Skill，新增意图只加 Skill，不动其他部分</li>
+            <li>复合意图拆成子任务，无依赖的工具并行调用</li>
+            <li>边界写在 Skill 里，Bad Case 能定位到具体 Skill</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+<!-- EVAL -->
+  <section class="panel" id="eval" role="tabpanel" aria-labelledby="tab-eval" hidden>
+    <div class="block">
+      <h2>四维评估框架</h2>
+      <div class="dims">
+        <div class="dim"><b>准确性</b><span>型号、参数、价格、交期是否与数据源一致。任何一个数值错误即判为不合格</span></div>
+        <div class="dim"><b>相关性</b><span>是否回答了客户真正问的；复合问题是否每一问都覆盖</span></div>
+        <div class="dim"><b>逻辑一致性</b><span>多轮中前后不矛盾；“刚才那根”能正确指代上文型号</span></div>
+        <div class="dim"><b>专业表达</b><span>是否符合 SOP 的结构、长度、语气；术语是否规范</span></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>断点 + 端到端两层离线评测</h2>
+      <div class="layers">
+        <div class="card"><h3>断点评测（节点级）</h3><p class="sub">分别评意图识别、槽位抽取、检索召回、生成，定位是哪一个节点出错，避免只看最终答案“猜原因”。</p></div>
+        <div class="card"><h3>端到端评测</h3><p class="sub">按线上真实问题分布抽样，看整轮对话是否帮客户完成任务，作为每次迭代上线前的回归门槛。</p></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>Bad Case 归因顺序：链路缺陷 → 策略问题 → Prompt / 模型问题</h2>
+      <p class="lead-in">先排查成本最高、影响面最大的链路问题，最后才动 Prompt。下面是三类问题的示例（内容已虚构化）。</p>
+      <div class="order">
+        <div class="case c1"><span class="rank">1</span><span class="cat">洁净室场景推荐了镀铬轴<em>链路缺陷</em></span><p>断点评测发现检索没有召回“洁净环境材质”章节：规格表被切块时表头和行被切开。</p><p>修复：表格按“表头 + 行”切分，分层检索召回整节内容。</p></div>
+        <div class="case c2"><span class="rank">2</span><span class="cat">问“价格和交期”只答了价格<em>策略问题</em></span><p>复合意图被当成单一意图处理。</p><p>修复：意图识别输出多标签，Agent 拆成子任务并行调用工具后再汇总。</p></div>
+        <div class="case c3"><span class="rank">3</span><span class="cat">回答冗长，型号埋在段落中间<em>Prompt 问题</em></span><p>生成没有遵守 SOP 结构。</p><p>修复：Prompt 按 SOP 分段约束 + Few-shot 示例，结论和型号放第一行。</p></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>项目成果（实际项目指标）</h2>
+      <div class="kpis">
+        <div class="kpi"><span class="v">88%+</span><span class="l">意图识别准确率</span></div>
+        <div class="kpi"><span class="v">67%+</span><span class="l">核心参数问答准确率</span></div>
+        <div class="kpi"><span class="v">−40%+</span><span class="l">转人工率</span></div>
+        <div class="kpi"><span class="v">−43%</span><span class="l">Bad Case 总量</span></div>
+        <div class="kpi"><span class="v">+≈20%</span><span class="l">多轮上下文一致性（较基线）</span></div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h2>我负责的部分</h2>
+      <div class="card role">
+        <ul>
+          <li>拆解历史咨询，搭建二级意图体系，制定各意图 SOP 与“理想回答”标准</li>
+          <li>定义 Skill 触发边界、工具串并行调用规则与转人工条件，推动架构从 Planner + Executor 迭代为 Agent + Skill</li>
+          <li>搭建四维评估框架与断点 + 端到端评测，综合效果、成本、时延完成模型选型</li>
+          <li>主导 Bad Case 归因与迭代（Prompt 结构优化、Few-shot、意图颗粒度细化、数据增强），推动人工兜底闭环</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>本页为个人求职作品演示。KANAGU FA、LSF / BSR / LBH 等型号、B 公司 XR-2005、A 精机及所有价格均为虚构；成果指标来自本人实际项目，已做脱敏处理。</footer>
+</div>
+
+<script>
+(function(){
+  function pre(t){ return {k:'qa', n:'QA 对匹配 · 读取历史', h:t}; }
+  function store(t){ return {k:'store', n:'存储本轮对话记录', h:t||''}; }
+  var S = [
+    { id:'s1', title:'选型推荐', desc:'参数不全 → 反问 → 推荐型号',
+      note:'客户只知道大概尺寸和负载。演示“工具结果不满足 → 回到 Skill 反问参数”的回环，以及按 SOP 输出可直接下单的型号。',
+      steps:[
+        {u:'我们在做一台外观检测设备的升降机构，需要直线导向轴，直径 12 左右，长度两百多毫米，负载大概 3kg，帮我推荐一下。'},
+        pre('QA 对：未命中 · 历史对话：0 轮（新会话）'),
+        {k:'intent', n:'判断意图类型', h:'意图类型：<b>有效咨询</b><br>二级意图：产品参数 / 选型推荐 <span class="score">conf 0.93</span>'},
+        {k:'skill', n:'命中 Skill「产品参数查询」', h:'Skill 要求参数：<div class="slots"><span>类别</span><span>直线轴</span><span class="s-ok">OK</span><span>直径</span><span>12 mm</span><span class="s-ok">OK</span><span>负载</span><span>3 kg</span><span class="s-ok">OK</span><span>长度</span><span>“两百多”</span><span class="s-no">模糊</span><span>使用环境</span><span>—</span><span class="s-no">缺失</span><span>端部加工</span><span>—</span><span class="s-no">缺失</span></div>'},
+        {k:'tool', n:'调用工具', h:'<code>search_parts(category="直线轴", D=12, load="3kg")</code> → 候选 38 个'},
+        {k:'policy', n:'判断工具结果：不满足', h:'无法确定唯一型号 → 回到 Skill：按规则反问关键参数。一次最多 3 个，每个给出选项。'},
+        {a:'好的。为了给您准确的型号，还需要确认 3 点：<ol><li>长度：本系列可按 1mm 单位指定（10–800mm），具体需要多少？</li><li>使用环境：普通车间 / 洁净室 / 有切削液飞溅？</li><li>两端加工：不加工 / 外螺纹 / 内螺纹？</li></ol>'},
+        {c:['长度 230mm','洁净室','两端 M6 内螺纹']},
+        store('已确认参数：D12、3kg'),
+        {u:'长度 230，在洁净室里用，两端要 M6 内螺纹。'},
+        pre('QA 对：未命中 · 读取历史 1 轮 → 继承 D12、3kg'),
+        {k:'intent', n:'判断意图类型', h:'意图类型：<b>有效咨询</b> · 二级：选型推荐（补充参数）'},
+        {k:'skill', n:'命中 Skill「产品参数查询」', h:'长度 = 230 mm · 环境 = 洁净室 · 端部 = 内螺纹 M6 → <b>参数齐全</b>'},
+        {k:'tool', n:'调用工具', h:'<code>search_parts(D=12, L=230, env="cleanroom", end="TM6")</code> → 1 个'},
+        {k:'rag', n:'知识检索（Hybrid + Rerank）', h:'<ul><li>《直线轴选型指南》§3.2 洁净环境材质选择 <span class="score">0.91</span></li><li>《LSF 系列规格表》D12 行 <span class="score">0.88</span></li><li>《端部加工可选范围》内螺纹 <span class="score">0.84</span></li></ul>'},
+        {k:'tool', n:'并行调用', h:'<code>get_price</code> ‖ <code>get_lead_time</code> → ¥3,240 / 标准 3 个工作日出货'},
+        {k:'rule', n:'判断工具结果：满足', h:'L=230 在可选范围 10–800 内 <span class="ok">✓</span> · D12 可加工 M6 内螺纹 <span class="ok">✓</span><br>负载 3kg 单轴需配合轴承校核 → 写入注意事项'},
+        {k:'gen', n:'按 SOP 输出回答', h:'结论 → 推荐型号 → 理由 → 注意事项 → 下一步 · 正文 ≤250 字 · 语气专业、不夸大'},
+        {a:'推荐以下型号：<div class="rec"><span class="pn">LSF-S-D12-L230-TM6</span><div class="specs"><span class="spec">SUS440C 淬火 HRC56+</span><span class="spec">外径公差 g6</span><span class="spec">两端 M6 内螺纹</span></div><p><b>理由：</b>洁净室要求低发尘，不锈钢淬火轴没有镀层，不存在镀层剥落的风险。</p><p><b>注意：</b>3kg 负载建议两根轴并联，并搭配直线轴承 <span class="code">LBH-12</span>。</p><p class="mono" style="font-size:12.5px">¥3,240 / 根 · 标准 3 个工作日出货</p><div class="row-btns"><span>下载 CAD</span><span>加入询价单</span><span>对比其他材质</span></div></div>'},
+        store('推荐型号 LSF-S-D12-L230-TM6')
+      ]},
+    { id:'s2', title:'批量报价', desc:'量价交期 → 生成询价线索',
+      note:'接场景 1。演示多轮指代、复合意图并行调用工具；批量价查不到时回到 Skill 改走询价流程，把线索交给营业（AI 销售场景）。',
+      steps:[
+        {u:'刚才那根轴要 80 根，多少钱？最快什么时候能到大阪工厂？'},
+        pre('QA 对：未命中 · 读取历史 2 轮'),
+        {k:'memory', n:'结合历史：指代消解', h:'“刚才那根” → 上一轮推荐的 <code>LSF-S-D12-L230-TM6</code>'},
+        {k:'intent', n:'判断意图类型', h:'意图类型：<b>有效咨询</b><br>二级意图：阶梯价 + 交期（复合，拆成 2 个子任务） <span class="score">conf 0.95</span>'},
+        {k:'skill', n:'命中 Skill「报价采购」', h:'<code>get_tier_price(qty=80)</code> ‖ <code>get_lead_time(qty=80, dest="大阪")</code> 并行'},
+        {k:'rule', n:'判断工具结果：满足', h:'两个子问题都有结果 <span class="ok">✓</span>'},
+        {a:'80 根的报价如下：<div class="tbl-wrap"><table class="t"><thead><tr><th>数量</th><th>单价（不含税）</th></tr></thead><tbody><tr><td>1–9 根</td><td class="num">¥3,240</td></tr><tr><td>10–49 根</td><td class="num">¥2,980</td></tr><tr class="hit"><td>50–99 根</td><td class="num">¥2,760</td></tr></tbody></table></div><p style="margin-top:6px"><b>80 根合计 <span class="mono">¥220,800</span></b>（不含税）</p><p><b>交期：</b>5 个工作日出货，大阪地区出货后次日送达。</p><p style="font-size:12px;color:var(--muted)">价格以下单确认时为准，报价有效期 30 天。</p><div class="row-btns"><span>生成报价单</span><span>加入购物车</span></div>'},
+        store('已报价 80 根 ¥2,760 / 根'),
+        {u:'如果做到 300 根，价格还能再低一点吗？'},
+        pre('QA 对：未命中 · 读取历史 3 轮'),
+        {k:'intent', n:'判断意图类型', h:'意图类型：<b>有效咨询</b> · 二级：大批量询价 <span class="score">conf 0.92</span>'},
+        {k:'skill', n:'命中 Skill「报价采购」', h:'<code>get_tier_price(qty=300)</code> → 返回“300 根以上需营业个别报价”'},
+        {k:'policy', n:'判断工具结果：不满足', h:'没有自动价格 → 回到 Skill：按规则改走询价流程。Agent 不承诺任何折扣。'},
+        {k:'tool', n:'调用工具', h:'<code>create_sales_lead(...)</code> → 询价单 Q-0928-017，已通知关西区营业担当'},
+        {k:'rule', n:'判断工具结果：满足', h:'询价单已创建 <span class="ok">✓</span>'},
+        {a:'300 根以上是批量特价，需要营业担当单独报价。我已经为您生成询价单（Q-0928-017）并通知了关西区营业担当，工作时间内 1 小时内会联系您。在此之前，80 根的报价仍然有效。'},
+        {card:'lead'},
+        store('询价单 Q-0928-017')
+      ]},
+    { id:'s3', title:'竞品替换', desc:'他司型号 → 规格对照 → 技术工单',
+      note:'客户想替换他司产品。演示竞品对比 Skill 的边界：只做规格对照，明确写出差异风险；需要看图纸时生成技术咨询工单。',
+      steps:[
+        {u:'我们现在用的是 B 公司的滚珠丝杠 XR-2005，交期太长了。你们有没有能直接替换的？'},
+        pre('QA 对：未命中 · 历史对话：0 轮（新会话）'),
+        {k:'intent', n:'判断意图类型', h:'意图类型：<b>有效咨询</b><br>二级意图：竞品选型 / 替代型号 <span class="score">conf 0.89</span>'},
+        {k:'skill', n:'命中 Skill「竞品对比」', h:'边界：只做规格对照，不评价他司质量与价格；对照表未收录时不推测'},
+        {k:'tool', n:'调用工具', h:'<code>xref_lookup(brand="B公司", model="XR-2005")</code> → 命中 <code>BSR-D20-P5-C7</code>'},
+        {k:'rag', n:'知识检索', h:'<ul><li>《BSR 系列规格表》<span class="score">0.90</span></li><li>《螺母法兰安装尺寸对照》<span class="score">0.86</span></li></ul>'},
+        {k:'rule', n:'判断工具结果：满足（有差异项）', h:'5 项中 4 项一致，<span class="warn">法兰安装孔 PCD 45 → 44</span><br>Skill 规则：有差异项时回答中必须写明风险'},
+        {a:'主要规格一致，可以作为替代候选：<div class="tbl-wrap"><table class="t"><thead><tr><th>项目</th><th>XR-2005</th><th>BSR-D20-P5-C7</th></tr></thead><tbody><tr><td>轴径</td><td class="num">20</td><td class="num">20 <span class="ok">✓</span></td></tr><tr><td>导程</td><td class="num">5</td><td class="num">5 <span class="ok">✓</span></td></tr><tr><td>精度等级</td><td class="num">C7</td><td class="num">C7 <span class="ok">✓</span></td></tr><tr><td>螺母外径</td><td class="num">36</td><td class="num">36 <span class="ok">✓</span></td></tr><tr><td>法兰孔 PCD</td><td class="num">45</td><td class="num warn">44 ⚠</td></tr></tbody></table></div><p style="margin-top:6px"><b>注意：</b>螺母法兰安装孔 PCD 不同，不能直接装在原有支架上，需要确认安装面或加一块转接板。</p><p class="mono" style="font-size:12.5px">BSR-D20-P5-C7 · 标准 7 个工作日出货</p>'},
+        store('对照结果：1 项差异（PCD）'),
+        {u:'我们的安装板不太好改，能帮我看下图纸怎么处理吗？'},
+        pre('QA 对：未命中 · 读取历史 1 轮'),
+        {k:'intent', n:'判断意图类型', h:'意图类型：<b>有效咨询</b> · 二级：技术咨询（需要看图纸）'},
+        {k:'skill', n:'命中 Skill「售后支持」', h:'<code>create_tech_ticket(附对照结果、差异项、约束="安装板不便修改")</code> → 工单 T-0928-042'},
+        {k:'rule', n:'判断工具结果：满足', h:'工单已创建，路由技术支持 <span class="ok">✓</span>'},
+        {a:'需要看图纸的问题由技术支持工程师处理更准确。我已经创建技术咨询工单（T-0928-042），对照结果和“安装板不便修改”这个条件都附在里面了。您可以在这里上传图纸，工程师会给出转接板方案或其他替代型号。<div class="row-btns"><span>上传图纸</span></div>'},
+        store('工单 T-0928-042')
+      ]},
+    { id:'s4', title:'短路径分流', desc:'闲聊 · 需求不明 · QA 对命中',
+      note:'不是每句话都要进 Skill。演示闲聊引导、需求不明时给选项澄清，以及命中 QA 对时直接给固定答案。',
+      steps:[
+        {u:'你好'},
+        pre('QA 对：未命中 · 历史对话：0 轮'),
+        {k:'intent', n:'判断意图类型', h:'意图类型：<b>闲聊 / 寒暄</b> → 不进入 Skill'},
+        {k:'gen', n:'引导有效咨询', h:'告诉客户可以咨询的范围'},
+        {a:'您好，这里是 KANAGU FA 售前咨询。可以帮您选型、查规格、报价和交期，也可以查找他司型号的替代品。请问需要什么零件？'},
+        store(),
+        {u:'你们那个导轨有吗'},
+        pre('QA 对：未命中 · 读取历史 1 轮'),
+        {k:'intent', n:'判断意图类型', h:'意图类型：<b>需求不明</b><br>“导轨”可对应微型直线导轨 / 滑轨 / 直线导向轴 3 个品类'},
+        {k:'policy', n:'引导用户澄清意图', h:'给出品类选项，不猜'},
+        {a:'“导轨”在我们这里有几类，您指的是哪一种？'},
+        {c:['微型直线导轨','抽屉式滑轨','直线导向轴']},
+        store(),
+        {u:'只买 1 根也可以吗？'},
+        {k:'rule', n:'命中 QA 对', h:'<b>#QA-012「最小起订量」</b> → 直接返回固定 answer，不经过意图判断和大模型'},
+        {a:'可以，全部标准零件 1 个起订，同样按标准出货日发货。'},
+        store()
+      ]},
+    { id:'s5', title:'转人工与情绪', desc:'计数规则：先安抚，3 次再转',
+      note:'演示转人工计数规则：近 5 轮转人工诉求或负面情绪累计 3 次才转人工，前两次先安抚并尝试解决。转人工时附上交接摘要。',
+      steps:[
+        {u:'说了半天都不对，我要找人工。'},
+        pre('QA 对：未命中 · 读取历史 4 轮'),
+        {k:'intent', n:'判断意图类型', h:'意图类型：<b>转人工</b>'},
+        {k:'policy', n:'转人工计数：1 / 3', h:'近 5 轮转人工诉求 / 负面情绪 1 次，未达到阈值 → 安抚并引导有效咨询'},
+        {a:'抱歉让您费心了。您可以直接告诉我型号或遇到的问题，能查到的我马上答复；如果是议价、看图纸这类问题，我会直接生成工单交给同事处理。'},
+        store('转人工计数 1'),
+        {u:'上周订的货到现在还没到，产线在等着用！'},
+        pre('QA 对：未命中 · 读取历史 5 轮'),
+        {k:'intent', n:'判断意图类型', h:'意图类型：<b>有效咨询</b>（含负面情绪 → 计数 2 / 3）<br>二级意图：订单 / 物流查询'},
+        {k:'skill', n:'命中 Skill「售后支持」', h:'<code>get_order(customer="A精机", recent=true)</code> → SO-0921-118，表面处理工序延迟，预计 9/30 出货'},
+        {k:'rule', n:'判断工具结果：满足', h:'查到订单与预计出货日 <span class="ok">✓</span>'},
+        {a:'查到了：订单 SO-0921-118（LSF-S-D12-L230-TM6 × 80）因表面处理工序延迟，预计 9 月 30 日出货，大阪地区次日送达。给您添麻烦了。'},
+        store('转人工计数 2'),
+        {u:'30 号太晚了，会停线的，马上给我转人工！'},
+        pre('QA 对：未命中 · 读取历史 5 轮'),
+        {k:'intent', n:'判断意图类型', h:'意图类型：<b>转人工</b>'},
+        {k:'guard', n:'转人工计数：3 / 3', h:'达到阈值 → 转人工客服处理，不再尝试挽留'},
+        {k:'handoff', n:'转人工客服处理', h:'生成交接摘要 → 路由：售后客服（标记加急）→ 结束'},
+        {a:'明白，已为您转接售后客服并标记为加急。客服已经看到订单和交期情况，您不需要再重复说明。'},
+        {card:'handoff'}
+      ]}
+  ];
+
+  var CARDS = {
+    lead:'<div class="lead"><span class="h">营业担当收到的询价线索</span><dl>'+
+      '<dt>客户</dt><dd>A 精机 大阪工厂 · 生产技术部</dd>'+
+      '<dt>需求</dt><dd><span class="code">LSF-S-D12-L230-TM6</span> × 300 根（洁净室检测设备升降机构）</dd>'+
+      '<dt>已报价</dt><dd>80 根 ¥2,760 / 根，有效期 30 天</dd>'+
+      '<dt>交期要求</dt><dd>尽快，送大阪</dd>'+
+      '<dt>意向判断</dt><dd>高（已询量价、交期，并主动问大批量价格）</dd>'+
+      '<dt>建议</dt><dd>可一并提案配套直线轴承 LBH-12 × 600</dd></dl></div>',
+    handoff:'<div class="lead"><span class="h">售后客服收到的交接摘要</span><dl>'+
+      '<dt>客户</dt><dd>A 精机 大阪工厂</dd>'+
+      '<dt>诉求</dt><dd>订单 SO-0921-118 希望提前到货，否则停线</dd>'+
+      '<dt>已答复</dt><dd>预计 9/30 出货，大阪次日送达</dd>'+
+      '<dt>情绪</dt><dd>负面，近 5 轮转人工诉求 / 负面情绪 3 次</dd>'+
+      '<dt>建议</dt><dd>确认能否分批出货或加急表面处理</dd></dl></div>'
+  };
+
+  var KLABEL = {intent:'理解',slot:'槽位',policy:'策略',skill:'Skill',rag:'检索',tool:'工具',rule:'校验',gen:'生成',memory:'记忆',handoff:'转人工',guard:'护栏',qa:'前置',store:'存储'};
+
+  var cur = 0, idx = 0, timer = null;
+  var chat = document.getElementById('chat'), trace = document.getElementById('trace');
+  var scenEl = document.getElementById('scen');
+
+  S.forEach(function(s,i){
+    var b = document.createElement('button');
+    b.id = 'scen-'+s.id;
+    b.setAttribute('aria-pressed', i===0?'true':'false');
+    b.innerHTML = '<span class="n">场景 '+(i+1)+'</span><b>'+s.title+'</b><span>'+s.desc+'</span>';
+    b.addEventListener('click', function(){ select(i, true); });
+    scenEl.appendChild(b);
+  });
+
+  function esc(t){ return t.replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+
+  function render(){
+    var s = S[cur], steps = s.steps;
+    var ch = [], tr = [], lastTrace = -1;
+    for (var i=0;i<idx;i++){ if (steps[i].k) lastTrace = i; }
+    for (var j=0;j<idx;j++){
+      var st = steps[j];
+      if (st.u){ ch.push('<span class="who r">客户</span><div class="msg user">'+esc(st.u)+'</div>'); }
+      else if (st.a){ ch.push('<span class="who">Agent</span><div class="msg agent">'+st.a+'</div>'); }
+      else if (st.c){ var used = j < idx-1; ch.push('<div class="chips'+(used?' used':'')+'">'+st.c.map(function(x){return '<span class="chip">'+x+'</span>';}).join('')+'</div>'); }
+      else if (st.card){ ch.push(CARDS[st.card]); }
+      else if (st.k){
+        tr.push('<div class="tr k-'+st.k+(j===lastTrace && idx<steps.length?' latest':'')+'"><div class="tr-h"><span class="tag">'+KLABEL[st.k]+'</span><b>'+st.n+'</b></div><div>'+st.h+'</div></div>');
+      }
+    }
+    // typing indicator while agent is working
+    var nxt = steps[idx];
+    if (idx>0 && idx<steps.length && nxt && (nxt.k || nxt.a) && timer){ ch.push('<div class="typing" aria-label="Agent 处理中"><i></i><i></i><i></i></div>'); }
+    chat.innerHTML = ch.length ? ch.join('') : '<p class="empty">点击“下一步”或“从头播放”开始</p>';
+    trace.innerHTML = tr.length ? tr.join('') : '<p class="empty">Agent 的每一步会显示在这里</p>';
+    chat.scrollTop = chat.scrollHeight; trace.scrollTop = trace.scrollHeight;
+    document.getElementById('counter').textContent = '步骤 '+idx+' / '+steps.length;
+    document.getElementById('b-next').disabled = idx>=steps.length;
+    document.getElementById('b-all').disabled = idx>=steps.length;
+    document.getElementById('scen-note').textContent = s.note;
+    document.getElementById('b-play').textContent = timer ? '❚❚ 暂停' : '▶ 从头播放';
+  }
+
+  function stop(){ if (timer){ clearTimeout(timer); timer=null; } }
+  function tick(){
+    var steps = S[cur].steps;
+    if (idx >= steps.length){ stop(); render(); return; }
+    idx++; render();
+    var n = steps[idx];
+    var d = !n ? 0 : (n.k ? 750 : (n.u ? 1500 : 1100));
+    if (idx < steps.length) timer = setTimeout(tick, d); else { stop(); render(); }
+  }
+  function select(i, fromUser){
+    stop(); cur = i; idx = S[i].steps.length;
+    Array.prototype.forEach.call(scenEl.children, function(b,k){ b.setAttribute('aria-pressed', k===i?'true':'false'); });
+    render();
+    try{ localStorage.setItem('fa-demo-scen', String(i)); }catch(e){}
+  }
+  document.getElementById('b-play').addEventListener('click', function(){
+    if (timer){ stop(); render(); return; }
+    idx = 0; timer = setTimeout(tick, 300); render();
+  });
+  document.getElementById('b-next').addEventListener('click', function(){ stop(); if (idx < S[cur].steps.length){ idx++; } render(); });
+  document.getElementById('b-all').addEventListener('click', function(){ stop(); idx = S[cur].steps.length; render(); });
+
+  // tabs
+  var tabs = document.querySelectorAll('nav.tabs button');
+  function showTab(id){
+    tabs.forEach(function(t){
+      var on = t.getAttribute('aria-controls')===id;
+      t.setAttribute('aria-selected', on?'true':'false');
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+  }
+  tabs.forEach(function(t){ t.addEventListener('click', function(){ showTab(t.getAttribute('aria-controls')); }); });
+  var h = (location.hash||'').replace('#','');
+  if (['demo','design','eval'].indexOf(h) >= 0) showTab(h);
+
+  var start = 0;
+  try{ var v = parseInt(localStorage.getItem('fa-demo-scen'),10); if (v>=0 && v<S.length) start = v; }catch(e){}
+  select(start);
+})();
+</script>
+
+
+</body>
+</html>
